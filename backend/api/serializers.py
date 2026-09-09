@@ -223,3 +223,36 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             )
         
         return instance
+
+
+class RecipeShortSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time',
+        )
+
+
+class SubscriptionSerializer(UserSerializer):
+    recipes = serializers.SerializerMethodField()
+    recipe_count = serializers.SerializerMethodField()
+
+    class Meta(UserSerializer.Meta):
+        fields = UserSerializer.Meta.fields + (
+            'recipes',
+            'recipes_count',
+        )
+
+    def get_recipes(self, obj):
+        return RecipeShortSerializer(
+            obj.recipes.all(),
+            many=True,
+            context=self.context
+        ).data
+
+    def det_recipes_count(self, obj):
+        return obj.recipes.count()
