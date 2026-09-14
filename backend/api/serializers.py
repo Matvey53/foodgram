@@ -1,11 +1,10 @@
-from rest_framefork import serializers
+from rest_framework import serializers
 
-
-from users.model import User
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
+from users.models import User
 
 
-class TagSeriliazer(serializers.ModelSerializer):
+class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = (
@@ -15,11 +14,11 @@ class TagSeriliazer(serializers.ModelSerializer):
         )
 
 
-class IngrediantSerializer(serializers.ModelSerializer):
+class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingredient
         fields = (
-            'id', 
+            'id',
             'name',
             'measurement_unit',
         )
@@ -74,7 +73,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RecipeReadSerializer(serializers.ModelSerializer):
     author = UserSerializer(read_only=True)
-    tags = TagSeriliazer(many=True, read_only=True)
+    tags = TagSerializer(many=True, read_only=True)
     ingredients = RecipeIngredientSerializer(
         source='recipe_ingredients',
         many=True,
@@ -103,7 +102,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
         if request is None or request.user.is_anonymous:
             return False
-        
+
         return request.user.favorites.filter(
             recipe=obj
         ).exists()
@@ -113,7 +112,7 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
         if request is None or request.user.is_anonymous:
             return False
-        
+
         return request.user.shopping_cart.filter(
             recipe=obj
         ).exists()
@@ -202,7 +201,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         )
 
         return recipe
-    
+
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients', None)
         tags = validated_data.pop('tags', None)
@@ -221,7 +220,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
                 instance,
                 ingredients
             )
-        
+
         return instance
 
 
@@ -239,7 +238,7 @@ class RecipeShortSerializer(serializers.ModelSerializer):
 
 class SubscriptionSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
-    recipe_count = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
 
     class Meta(UserSerializer.Meta):
         fields = UserSerializer.Meta.fields + (
@@ -254,5 +253,5 @@ class SubscriptionSerializer(UserSerializer):
             context=self.context
         ).data
 
-    def det_recipes_count(self, obj):
+    def get_recipes_count(self, obj):
         return obj.recipes.count()

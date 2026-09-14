@@ -1,16 +1,26 @@
-from rest_framework import viewsets 
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
-from rest_framework.response import Response
+from django.shortcuts import get_object_or_404, redirect
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import redirect, get_object_or_404
+from rest_framework.permissions import (
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly,
+)
+from rest_framework.response import Response
 
-from recipes.models import Tag, Ingredient, Recipe, Favorite, ShoppingCart
-from .serializers import TagSerializer, IngredientSerializer, RecipeReadSerializer, RecipeWriteSerializer, RecipeShortSerializer
-from .permissions import IsAdminOrReadOnly, IsAuthorOrAdminOrReadOnly
+from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
 from .filters import IngredientFilter, RecipeFilter
-from .utils import encode_base36, decode_base36
+from .permissions import IsAdminOrReadOnly, IsAuthorOrAdminOrReadOnly
+from .serializers import (
+    IngredientSerializer,
+    RecipeReadSerializer,
+    RecipeShortSerializer,
+    RecipeWriteSerializer,
+    TagSerializer,
+)
+from .utils import decode_base36, encode_base36
+
 
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
@@ -29,7 +39,7 @@ class IngredientViewSet(viewsets.ModelViewSet):
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (
-        IsAuthenticatedOrReadOnly, 
+        IsAuthenticatedOrReadOnly,
         IsAuthorOrAdminOrReadOnly
     )
     filter_backends = (DjangoFilterBackend,)
@@ -64,26 +74,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
         relation_queryset.delete()
         return Response(status=204)
 
-
     @action(
-        detail=True, 
-        url_path='favorite', 
-        methods=['post', 'delete'], 
+        detail=True,
+        url_path='favorite',
+        methods=['post', 'delete'],
         permission_classes=(IsAuthenticated,)
     )
     def add_recipe_to_favorite(self, request):
         return self._change_relation(Favorite)
 
-    
     @action(
-        detail=True, 
-        url_path='shopping_cart', 
-        methods=['post', 'delete'], 
+        detail=True,
+        url_path='shopping_cart',
+        methods=['post', 'delete'],
         permission_classes=(IsAuthenticated,)
     )
     def add_recipe_to_shopping_cart(self, request):
         return self._change_relation(ShoppingCart)
-
 
     @action(detail=True, url_path='get-link')
     def create_short_link(self, request):
@@ -93,7 +100,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return Response(
             {"short-link": uri}
         )
-        
+
 
 def redirect_short_link(request, short_code):
     recipe_id = decode_base36(short_code)

@@ -12,5 +12,6 @@ def encode_base36(number):
 
     return result
 
+
 def decode_base36(code):
     return int(code, 36)
