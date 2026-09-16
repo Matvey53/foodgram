@@ -135,26 +135,53 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-      - name: Copy docker-compose.yml via ssh
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          port: 22
-          source: "infra/docker-compose.production.yml"
-          target: "foodgram"
-      - name: Executing remote ssh commands to deploy
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
-          port: 22
-          script: |
-            cd foodgram
-            docker compose -f infra/docker-compose.production.yml pull
-            docker compose -f infra/docker-compose.production.yml down
-            docker compose -f infra/docker-compose.production.yml up -d
+      - name: Deploy via SSH
+        env:
+          HOST: ${{ secrets.HOST }}
+          SSH_USER: ${{ secrets.USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HOST" ] || [ -z "$SSH_USER" ] || [ -z "$SSH_KEY" ]; then
+            echo "Пустой секрет: HOST, USER или SSH_KEY"
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          python3 - <<'PY'
+          import os, pathlib
+          key = os.environ["SSH_KEY"].replace("\r\n", "\n").replace("\r", "\n")
+          if "\\n" in key and "BEGIN" in key:
+              key = key.replace("\\n", "\n")
+          pathlib.Path.home().joinpath(".ssh/deploy_key").write_text(key.strip() + "\n")
+          PY
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -lf ~/.ssh/deploy_key
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no \
+            "$SSH_USER@$HOST" "mkdir -p ~/foodgram/infra"
+          scp -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no \
+            infra/docker-compose.production.yml \
+            "$SSH_USER@$HOST:~/foodgram/infra/docker-compose.production.yml"
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no \
+            "$SSH_USER@$HOST" "
+              set -e
+              sudo systemctl stop nginx apache2 2>/dev/null || true
+              sudo systemctl disable nginx apache2 2>/dev/null || true
+              cd ~/foodgram
+              if [ ! -f .env ]; then
+                cat > .env <<'EOF'
+SECRET_KEY=django-insecure-foodgram-production-change-me
+DEBUG=False
+ALLOWED_HOSTS=158.160.241.90
+CSRF_TRUSTED_ORIGINS=http://158.160.241.90
+POSTGRES_DB=foodgram
+POSTGRES_USER=foodgram
+POSTGRES_PASSWORD=foodgram
+DB_HOST=db
+DB_PORT=5432
+EOF
+              fi
+              docker compose -f infra/docker-compose.production.yml pull
+              docker compose -f infra/docker-compose.production.yml down
+              docker compose -f infra/docker-compose.production.yml up -d
+            "
