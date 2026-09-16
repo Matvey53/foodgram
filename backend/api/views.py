@@ -1,43 +1,55 @@
 from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django_filters.rest_framework import DjangoFilterBackend
-from django.http import HttpResponse
-from rest_framework import viewsets
+from djoser.views import UserViewSet as DjoserUserViewSet
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import (
+    AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly,
 )
-from rest_framework import status
 from rest_framework.response import Response
-from djoser.views import UserViewSet as DjoserUserViewSet
 
-from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
+from recipes.models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Tag,
+)
+from users.models import Subscription, User
+
 from .filters import IngredientFilter, RecipeFilter
-from .permissions import IsAdminOrReadOnly, IsAuthorOrAdminOrReadOnly
+from .pagination import FoodgramPagination
+from .permissions import IsAuthorOrAdminOrReadOnly
 from .serializers import (
+    AvatarSerializer,
     IngredientSerializer,
     RecipeReadSerializer,
     RecipeShortSerializer,
     RecipeWriteSerializer,
-    TagSerializer,
     SubscriptionSerializer,
+    TagSerializer,
 )
 from .utils import decode_base36, encode_base36
-from users.models import Subscription
 
 
-class TagViewSet(viewsets.ModelViewSet):
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = None
+    permission_classes = (AllowAny,)
 
 
-class IngredientViewSet(viewsets.ModelViewSet):
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = None
+    permission_classes = (AllowAny,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
 
@@ -86,7 +98,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         methods=['post', 'delete'],
         permission_classes=(IsAuthenticated,)
     )
-    def add_recipe_to_favorite(self, request):
+    def add_recipe_to_favorite(self, request, **kwargs):
         return self._change_relation(Favorite)
 
     @action(
@@ -95,11 +107,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
         methods=['post', 'delete'],
         permission_classes=(IsAuthenticated,)
     )
-    def add_recipe_to_shopping_cart(self, request):
+    def add_recipe_to_shopping_cart(self, request, **kwargs):
         return self._change_relation(ShoppingCart)
 
     @action(detail=True, url_path='get-link')
-    def create_short_link(self, request):
+    def create_short_link(self, request, **kwargs):
         recipe = self.get_object()
         short_code = encode_base36(recipe.id)
         uri = request.build_absolute_uri(f'/s/{short_code}/')
@@ -107,10 +119,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             {"short-link": uri}
         )
 
-    @action(detail=False, permission_classes=(IsAuthenticated,))
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=(IsAuthenticated,)
+    )
     def download_shopping_cart(self, request):
         ingredients = RecipeIngredient.objects.filter(
-            recipe__in_shopping_cart__user=request.user
+            recipe__in_shopping_carts__user=request.user
         ).values(
             'ingredient__name',
             'ingredient__measurement_unit'
@@ -136,6 +152,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         return response
 
+
 def redirect_short_link(request, short_code):
     recipe_id = decode_base36(short_code)
     recipe = get_object_or_404(
@@ -146,12 +163,19 @@ def redirect_short_link(request, short_code):
 
 
 class UserViewSet(DjoserUserViewSet):
+    pagination_class = FoodgramPagination
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            return (AllowAny(),)
+        return super().get_permissions()
+
     @action(
         detail=True,
         methods=['post', 'delete'],
         permission_classes=(IsAuthenticated,)
     )
-    def subscribe(self, request, pk=None):
+    def subscribe(self, request, **kwargs):
         user = request.user
         author = self.get_object()
         if user == author:
@@ -195,3 +219,25 @@ class UserViewSet(DjoserUserViewSet):
             context={'request': request}
         )
         return self.get_paginated_response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=['put', 'delete'],
+        url_path='me/avatar',
+        permission_classes=(IsAuthenticated,),
+    )
+    def avatar(self, request):
+        user = request.user
+        if request.method == 'PUT':
+            serializer = AvatarSerializer(
+                user,
+                data=request.data
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+        user.avatar.delete(save=True)
+        return Response(status=status.HTTP_204_NO_CONTENT)

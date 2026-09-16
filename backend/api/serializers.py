@@ -1,9 +1,14 @@
+from django.db import transaction
+from djoser.serializers import (
+    UserCreateSerializer as DjoserUserCreateSerializer,
+)
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
 
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import User
+
+from .fields import Base64ImageField
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -131,6 +136,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
         many=True,
         queryset=Tag.objects.all()
     )
+    image = Base64ImageField()
 
     class Meta:
         model = Recipe
@@ -142,6 +148,18 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             'text',
             'cooking_time',
         )
+
+    def validate_tags(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                'Нужно добавить хотя бы один тег.'
+            )
+
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError(
+                'Теги не должны повторяться.'
+            )
+        return value
 
     def validate_ingredients(self, value):
         if not value:
@@ -187,6 +205,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             ]
         )
 
+    @transaction.atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -204,6 +223,7 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
 
         return recipe
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients', None)
         tags = validated_data.pop('tags', None)
@@ -224,6 +244,25 @@ class RecipeWriteSerializer(serializers.ModelSerializer):
             )
 
         return instance
+
+    def to_representation(self, instance):
+        return RecipeReadSerializer(
+            instance,
+            context=self.context
+        ).data
+
+    def validate(self, data):
+        if self.instance is not None:
+            if 'ingredients' not in data:
+                raise serializers.ValidationError(
+                    {'ingredients': 'Это поле обязательно.'}
+                )
+            if 'tags' not in data:
+                raise serializers.ValidationError(
+                    {'tags': 'Это поле обязательно.'}
+                )
+
+        return data
 
 
 class RecipeShortSerializer(serializers.ModelSerializer):
@@ -279,9 +318,19 @@ class UserCreateSerializer(DjoserUserCreateSerializer):
     class Meta(DjoserUserCreateSerializer.Meta):
         model = User
         fields = (
+            'id',
             'email',
             'username',
             'first_name',
             'last_name',
             'password',
         )
+        read_only_fields = ('id',)
+
+
+class AvatarSerializer(serializers.ModelSerializer):
+    avatar = Base64ImageField()
+
+    class Meta:
+        model = User
+        fields = ('avatar',)

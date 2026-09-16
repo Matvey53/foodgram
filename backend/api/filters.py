@@ -1,19 +1,26 @@
-import django_filters
+from django_filters.rest_framework import (
+    AllValuesMultipleFilter,
+    BooleanFilter,
+    CharFilter,
+    FilterSet,
+    NumberFilter,
+)
 
 from recipes.models import Ingredient, Recipe
 
 
-class RecipeFilter(django_filters.FilterSet):
-    author = django_filters.NumberFilter(
+class RecipeFilter(FilterSet):
+    author = NumberFilter(
         field_name='author__id'
     )
-    tags = django_filters.AllValuesMultipleFilter(
-        field_name='tags__slug'
+    tags = AllValuesMultipleFilter(
+        field_name='tags__slug',
+        distinct=True
     )
-    is_favorited = django_filters.BooleanFilter(
+    is_favorited = BooleanFilter(
         method='filter_is_favorited'
     )
-    is_in_shopping_cart = django_filters.BooleanFilter(
+    is_in_shopping_cart = BooleanFilter(
         method='filter_is_in_shopping_cart'
     )
 
@@ -45,8 +52,8 @@ class RecipeFilter(django_filters.FilterSet):
         return queryset
 
 
-class IngredientFilter(django_filters.FilterSet):
-    name = django_filters.CharFilter(
+class IngredientFilter(FilterSet):
+    name = CharFilter(
         field_name='name',
         lookup_expr='istartswith'
     )
