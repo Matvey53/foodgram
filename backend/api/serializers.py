@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
 
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import User
@@ -247,11 +249,39 @@ class SubscriptionSerializer(UserSerializer):
         )
 
     def get_recipes(self, obj):
+        recipes = obj.recipes.all()
+        request = self.context.get('request')
+        recipes_limit = request.query_params.get('recipes_limit')
+        if recipes_limit:
+            try:
+                recipes_limit = int(recipes_limit)
+            except ValueError:
+                raise ValidationError(
+                    {'recipes_limit': 'Must be an integer.'}
+                )
+            if recipes_limit < 0:
+                raise ValidationError(
+                    {'recipes_limit': 'Must be a non-negative integer.'}
+                )
+            recipes = recipes[:recipes_limit]
         return RecipeShortSerializer(
-            obj.recipes.all(),
+            recipes,
             many=True,
             context=self.context
         ).data
 
     def get_recipes_count(self, obj):
         return obj.recipes.count()
+
+
+class UserCreateSerializer(DjoserUserCreateSerializer):
+
+    class Meta(DjoserUserCreateSerializer.Meta):
+        model = User
+        fields = (
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'password',
+        )
