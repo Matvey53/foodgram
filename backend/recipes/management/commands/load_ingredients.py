@@ -10,9 +10,17 @@ class Command(BaseCommand):
     help = 'Загружает ингредиенты из data/ingredients.csv'
 
     def handle(self, *args, **options):
-        csv_path = Path(settings.BASE_DIR).parent / 'data' / 'ingredients.csv'
-        if not csv_path.exists():
-            self.stderr.write(f'Файл не найден: {csv_path}')
+        csv_path = None
+        for candidate in (
+            Path(settings.BASE_DIR) / 'data' / 'ingredients.csv',
+            Path(settings.BASE_DIR).parent / 'data' / 'ingredients.csv',
+        ):
+            if candidate.exists():
+                csv_path = candidate
+                break
+
+        if csv_path is None:
+            self.stderr.write('Файл ingredients.csv не найден')
             return
 
         ingredients = []
