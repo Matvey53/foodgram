@@ -77,9 +77,24 @@ docker compose -f docker-compose.production.yml up -d
 
 - `DOCKER_USERNAME`
 - `DOCKER_PASSWORD`
-- `HOST` — IP сервера
-- `USER` — пользователь SSH
-- `SSH_KEY` — приватный ключ
+- `HOST` — публичный IP сервера (без `http://` и без порта)
+- `USER` — linux-пользователь SSH на ВМ, обычно `ubuntu` (не логин GitHub)
+- `SSH_KEY` — **приватный** ключ целиком, вместе со строками `BEGIN` и `END`
+- `PASSPHRASE` — пароль ключа, если при `ssh-keygen` его задавали; иначе секрет можно не создавать
+
+Если деплой падает с `ssh: unable to authenticate`, ключ на сервере не совпадает с секретом. На своей машине:
+
+```bash
+ssh-keygen -t ed25519 -f foodgram_deploy -N ""
+```
+
+Публичный ключ `foodgram_deploy.pub` добавьте на ВМ в `~/.ssh/authorized_keys` пользователя из секрета `USER`. Приватный ключ `foodgram_deploy` целиком вставьте в секрет `SSH_KEY`. Проверка с ноутбука:
+
+```bash
+ssh -i foodgram_deploy ubuntu@ВАШ_IP
+```
+
+После правки секретов достаточно Re-run failed jobs в Actions, новый коммит не обязателен.
 
 Образы: `matvey53/foodgram_backend`, `matvey53/foodgram_frontend`, `matvey53/foodgram_nginx`.
 
