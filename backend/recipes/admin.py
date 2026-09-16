@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 
 from .models import (
     Favorite,
@@ -8,6 +9,12 @@ from .models import (
     ShoppingCart,
     Tag,
 )
+
+
+class RecipeIngredientInline(admin.TabularInline):
+    model = RecipeIngredient
+    extra = 1
+    min_num = 1
 
 
 @admin.register(Tag)
@@ -21,6 +28,7 @@ class TagAdmin(admin.ModelAdmin):
         'name',
         'slug',
     )
+    empty_value_display = '-пусто-'
 
 
 @admin.register(Ingredient)
@@ -31,6 +39,8 @@ class IngredientAdmin(admin.ModelAdmin):
         'measurement_unit',
     )
     search_fields = ('name',)
+    list_filter = ('measurement_unit',)
+    empty_value_display = '-пусто-'
 
 
 @admin.register(Recipe)
@@ -40,6 +50,7 @@ class RecipeAdmin(admin.ModelAdmin):
         'name',
         'author',
         'cooking_time',
+        'favorites_count',
         'created_at',
     )
     search_fields = (
@@ -48,6 +59,17 @@ class RecipeAdmin(admin.ModelAdmin):
         'author__email',
     )
     list_filter = ('tags',)
+    inlines = (RecipeIngredientInline,)
+    empty_value_display = '-пусто-'
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(
+            favorites_annotated=Count('favorited_by')
+        )
+
+    @admin.display(description='В избранном')
+    def favorites_count(self, obj):
+        return obj.favorites_annotated
 
 
 @admin.register(RecipeIngredient)
@@ -62,6 +84,7 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
         'recipe__name',
         'ingredient__name',
     )
+    empty_value_display = '-пусто-'
 
 
 @admin.register(Favorite)
@@ -75,6 +98,7 @@ class FavoriteAdmin(admin.ModelAdmin):
         'user__email',
         'recipe__name',
     )
+    empty_value_display = '-пусто-'
 
 
 @admin.register(ShoppingCart)
@@ -88,3 +112,4 @@ class ShoppingCartAdmin(admin.ModelAdmin):
         'user__email',
         'recipe__name',
     )
+    empty_value_display = '-пусто-'
