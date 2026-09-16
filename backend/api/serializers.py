@@ -5,10 +5,9 @@ from djoser.serializers import (
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from api.fields import Base64ImageField
 from recipes.models import Ingredient, Recipe, RecipeIngredient, Tag
 from users.models import User
-
-from .fields import Base64ImageField
 
 
 class TagSerializer(serializers.ModelSerializer):

@@ -13,6 +13,19 @@ from rest_framework.permissions import (
 )
 from rest_framework.response import Response
 
+from api.filters import IngredientFilter, RecipeFilter
+from api.pagination import FoodgramPagination
+from api.permissions import IsAuthorOrAdminOrReadOnly
+from api.serializers import (
+    AvatarSerializer,
+    IngredientSerializer,
+    RecipeReadSerializer,
+    RecipeShortSerializer,
+    RecipeWriteSerializer,
+    SubscriptionSerializer,
+    TagSerializer,
+)
+from api.utils import decode_base36, encode_base36
 from recipes.models import (
     Favorite,
     Ingredient,
@@ -22,20 +35,6 @@ from recipes.models import (
     Tag,
 )
 from users.models import Subscription, User
-
-from .filters import IngredientFilter, RecipeFilter
-from .pagination import FoodgramPagination
-from .permissions import IsAuthorOrAdminOrReadOnly
-from .serializers import (
-    AvatarSerializer,
-    IngredientSerializer,
-    RecipeReadSerializer,
-    RecipeShortSerializer,
-    RecipeWriteSerializer,
-    SubscriptionSerializer,
-    TagSerializer,
-)
-from .utils import decode_base36, encode_base36
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
