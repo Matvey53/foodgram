@@ -295,11 +295,11 @@ class SubscriptionSerializer(UserSerializer):
                 recipes_limit = int(recipes_limit)
             except ValueError:
                 raise ValidationError(
-                    {'recipes_limit': 'Must be an integer.'}
+                    {'recipes_limit': 'Должно быть целым числом.'}
                 )
             if recipes_limit < 0:
                 raise ValidationError(
-                    {'recipes_limit': 'Must be a non-negative integer.'}
+                    {'recipes_limit': 'Должно быть неотрицательным числом.'}
                 )
             recipes = recipes[:recipes_limit]
         return RecipeShortSerializer(

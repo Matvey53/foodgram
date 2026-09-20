@@ -79,7 +79,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         if self.request.method == 'POST':
             if relation_queryset.exists():
-                raise ValidationError('Recipe already exists')
+                raise ValidationError('Рецепт уже добавлен')
             model.objects.create(
                 user=user,
                 recipe=recipe
@@ -87,7 +87,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer = RecipeShortSerializer(recipe)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         if not relation_queryset.exists():
-            raise ValidationError('Recipe does not exist')
+            raise ValidationError('Рецепта нет в списке')
         relation_queryset.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -178,7 +178,7 @@ class UserViewSet(DjoserUserViewSet):
         user = request.user
         author = self.get_object()
         if user == author:
-            raise ValidationError('You can’t subscribe to yourself')
+            raise ValidationError('Нельзя подписаться на самого себя')
         subscription = Subscription.objects.filter(
             user=user,
             author=author
@@ -186,7 +186,7 @@ class UserViewSet(DjoserUserViewSet):
 
         if self.request.method == 'POST':
             if subscription.exists():
-                raise ValidationError('Subscription already exists')
+                raise ValidationError('Вы уже подписаны на этого пользователя')
             Subscription.objects.create(
                 user=user,
                 author=author
@@ -197,7 +197,7 @@ class UserViewSet(DjoserUserViewSet):
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         if not subscription.exists():
-            raise ValidationError('Subscription does not exist')
+            raise ValidationError('Подписки не существует')
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
