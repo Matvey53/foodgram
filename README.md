@@ -2,7 +2,7 @@
 
 Сайт с рецептами: можно публиковать свои, подписываться на авторов, добавлять блюда в избранное и скачивать список покупок.
 
-Стек: Python, Django, DRF, Djoser, PostgreSQL, Nginx, Docker. Фронтенд готовый, из Практикума.
+Стек: Python, Django, DRF, Djoser, PostgreSQL, Nginx, Docker.
 
 ## Запуск локально
 
@@ -33,14 +33,15 @@ cd infra
 docker compose up --build
 ```
 
-На сервере образы с Docker Hub, файл `infra/docker-compose.production.yml`. В `~/foodgram/.env` должны быть IP сервера в `ALLOWED_HOSTS` и `CSRF_TRUSTED_ORIGINS`.
+## Основные эндпоинты
 
-Сайт: http://localhost  
-Админка: http://localhost/admin/
-
-Данные для ревью в `tests.yml`.
-
-При пуше в `main` GitHub Actions гоняет flake8, собирает образы и деплоит. Секреты репозитория: `DOCKER_USERNAME`, `DOCKER_PASSWORD`, `HOST`, `USER`, `SSH_KEY`.
+| Метод | URL | Описание |
+| --- | --- | --- |
+| POST | `/api/users/` | Регистрация |
+| POST | `/api/auth/token/login/` | Получение токена |
+| GET | `/api/recipes/` | Список рецептов |
+| POST | `/api/recipes/` | Создание рецепта |
+| GET | `/api/recipes/download_shopping_cart/` | Скачать список покупок |
 
 ## Автор
 
