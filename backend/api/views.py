@@ -1,6 +1,9 @@
+from io import BytesIO
+
 from django.db.models import Sum
-from django.http import HttpResponse
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework import status, viewsets
@@ -113,9 +116,36 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def create_short_link(self, request, **kwargs):
         recipe = self.get_object()
         short_code = encode_base36(recipe.id)
-        uri = request.build_absolute_uri(f'/s/{short_code}/')
+        uri = request.build_absolute_uri(
+            reverse('short-link', args=[short_code])
+        )
         return Response(
-            {"short-link": uri}
+            {'short-link': uri}
+        )
+
+    def get_shopping_cart_ingredients(self, user):
+        return RecipeIngredient.objects.filter(
+            recipe__shoppingcarts__user=user
+        ).values(
+            'ingredient__name',
+            'ingredient__measurement_unit'
+        ).annotate(
+            total_amount=Sum('amount')
+        ).order_by('ingredient__name')
+
+    def build_shopping_cart_file(self, ingredients):
+        lines = [
+            f"{item['ingredient__name']} "
+            f"({item['ingredient__measurement_unit']}) — "
+            f"{item['total_amount']}"
+            for item in ingredients
+        ]
+        content = '\n'.join(lines)
+        return FileResponse(
+            BytesIO(content.encode('utf-8')),
+            as_attachment=True,
+            filename='shopping_list.txt',
+            content_type='text/plain; charset=utf-8'
         )
 
     @action(
@@ -124,32 +154,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=(IsAuthenticated,)
     )
     def download_shopping_cart(self, request):
-        ingredients = RecipeIngredient.objects.filter(
-            recipe__in_shopping_carts__user=request.user
-        ).values(
-            'ingredient__name',
-            'ingredient__measurement_unit'
-        ).annotate(
-            total_amount=Sum('amount')
-        )
-
-        lines = []
-        for ingredient in ingredients:
-            lines.append(
-                f"{ingredient['ingredient__name']} "
-                f"({ingredient['ingredient__measurement_unit']}) — "
-                f"{ingredient['total_amount']}"
-            )
-        content = '\n'.join(lines)
-        response = HttpResponse(
-            content,
-            content_type='text/plain; charset=utf-8'
-        )
-        response['Content-Disposition'] = (
-            'attachment; filename="shopping_list.txt"'
-        )
-
-        return response
+        ingredients = self.get_shopping_cart_ingredients(request.user)
+        return self.build_shopping_cart_file(ingredients)
 
 
 def redirect_short_link(request, short_code):
@@ -206,11 +212,7 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=(IsAuthenticated,)
     )
     def subscriptions(self, request):
-        authors_ids = Subscription.objects.filter(
-            user=request.user
-        ).values_list('author_id', flat=True)
-
-        authors = User.objects.filter(id__in=authors_ids)
+        authors = User.objects.filter(subscribers__user=request.user)
         page = self.paginate_queryset(authors)
         serializer = SubscriptionSerializer(
             page,

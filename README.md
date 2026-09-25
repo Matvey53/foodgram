@@ -1,8 +1,14 @@
 # Foodgram
 
+[![Main Foodgram workflow](https://github.com/Matvey53/foodgram/actions/workflows/main.yml/badge.svg)](https://github.com/Matvey53/foodgram/actions/workflows/main.yml)
+
 Сайт с рецептами: можно публиковать свои, подписываться на авторов, добавлять блюда в избранное и скачивать список покупок.
 
 Стек: Python, Django, DRF, Djoser, PostgreSQL, Nginx, Docker.
+
+- [Проект в сети](https://foodgram.publicvm.com)
+- [Документация API](https://foodgram.publicvm.com/api/docs/)
+- [Схема OpenAPI](docs/openapi-schema.yml)
 
 ## Запуск локально
 
@@ -19,10 +25,8 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-API: http://127.0.0.1:8000/api/  
-Админка: http://127.0.0.1:8000/admin/
-
-Документация: `docs/openapi-schema.yml`, на сайте — `/api/docs/`.
+- [Локальный API](http://127.0.0.1:8000/api/)
+- [Локальная админка](http://127.0.0.1:8000/admin/)
 
 ## Docker
 

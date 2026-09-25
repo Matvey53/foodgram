@@ -3,7 +3,13 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from foodgram.constants import INGREDIENTS_CSV_RELATIVE_PATH
 from recipes.models import Ingredient
+
+INGREDIENTS_PATHS = (
+    Path(settings.BASE_DIR) / INGREDIENTS_CSV_RELATIVE_PATH,
+    Path(settings.BASE_DIR).parent / INGREDIENTS_CSV_RELATIVE_PATH,
+)
 
 
 class Command(BaseCommand):
@@ -11,10 +17,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         csv_path = None
-        for candidate in (
-            Path(settings.BASE_DIR) / 'data' / 'ingredients.csv',
-            Path(settings.BASE_DIR).parent / 'data' / 'ingredients.csv',
-        ):
+        for candidate in INGREDIENTS_PATHS:
             if candidate.exists():
                 csv_path = candidate
                 break

@@ -3,6 +3,8 @@ from django.contrib.auth.admin import UserAdmin
 
 from users.models import Subscription, User
 
+admin.site.empty_value_display = '-пусто-'
+
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -27,7 +29,6 @@ class CustomUserAdmin(UserAdmin):
         'is_active',
     )
     ordering = ('id',)
-    empty_value_display = '-пусто-'
     fieldsets = (
         (None, {
             'fields': ('email', 'password'),
@@ -79,4 +80,3 @@ class SubscriptionAdmin(admin.ModelAdmin):
         'user__email',
         'author__email',
     )
-    empty_value_display = '-пусто-'

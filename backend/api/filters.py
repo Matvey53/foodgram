@@ -3,16 +3,12 @@ from django_filters.rest_framework import (
     BooleanFilter,
     CharFilter,
     FilterSet,
-    NumberFilter,
 )
 
 from recipes.models import Ingredient, Recipe
 
 
 class RecipeFilter(FilterSet):
-    author = NumberFilter(
-        field_name='author__id'
-    )
     tags = AllValuesMultipleFilter(
         field_name='tags__slug',
         distinct=True
@@ -38,7 +34,7 @@ class RecipeFilter(FilterSet):
 
         if value and user.is_authenticated:
             return queryset.filter(
-                favorited_by__user=user
+                favorites__user=user
             )
         return queryset
 
@@ -47,7 +43,7 @@ class RecipeFilter(FilterSet):
 
         if value and user.is_authenticated:
             return queryset.filter(
-                in_shopping_carts__user=user
+                shoppingcarts__user=user
             )
         return queryset
 

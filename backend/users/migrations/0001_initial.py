@@ -2,7 +2,7 @@
 
 import django.contrib.auth.validators
 import django.utils.timezone
-import users.models
+import users.managers
 from django.db import migrations, models
 
 
@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
                 'abstract': False,
             },
             managers=[
-                ('objects', users.models.CustomUserManager()),
+                ('objects', users.managers.UserManager()),
             ],
         ),
     ]
