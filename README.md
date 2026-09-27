@@ -6,8 +6,8 @@
 
 Стек: Python, Django, DRF, Djoser, PostgreSQL, Nginx, Docker.
 
-- [Проект в сети](https://foodgram.publicvm.com)
-- [Документация API](https://foodgram.publicvm.com/api/docs/)
+- [Проект в сети](http://158.160.241.90)
+- [Документация API](http://158.160.241.90/api/docs/)
 - [Схема OpenAPI](docs/openapi-schema.yml)
 
 ## Запуск локально
